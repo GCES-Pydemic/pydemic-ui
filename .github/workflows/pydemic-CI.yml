@@ -24,8 +24,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo cp assets/locale.gen /etc/locale.gen
-        locale-gen
         python -m pip install --upgrade pip
         pip install flit pycodestyle pytest
         flit install
