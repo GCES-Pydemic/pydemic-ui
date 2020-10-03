@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flit pycodestyle pytest
+        pip install flit pycodestyle pytest invoke
         flit install
         pip uninstall -y pydemic-models
         pip install git+https://github.com/GCES-Pydemic/pydemic.git
