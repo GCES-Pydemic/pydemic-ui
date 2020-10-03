@@ -1,5 +1,5 @@
 
-name: Python package
+name: Pydemic CI
 
 on:
   push:
@@ -24,11 +24,14 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        cp assets/locale.gen /etc/locale.gen
+        locale-gen
         python -m pip install --upgrade pip
         pip install flit pycodestyle pytest
         flit install
         pip uninstall -y pydemic-models
         pip install git+https://github.com/GCES-Pydemic/pydemic.git
+        inv i18n
         
     - name: Lint with pycodestyle
       run: |
