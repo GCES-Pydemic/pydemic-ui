@@ -86,83 +86,94 @@ class Scheduler:
                 continue
 
             with self._lock:
-                (time, _, task, frequency) = self.tasks[0]
+                (time_to_run, _, task_to_run, frequency_to_repeat) = self.tasks[0]
 
                 if self._clock.__name__ != "time":
                     clock = self._clock(self._clock_args) + self._clock_tick
                 else:
                     clock = self._clock()
 
-                if time > clock:
-                    task = sleep
+                if time_to_run > clock:
+                    task_to_run = sleep
                 else:
                     self.tasks.popleft()
 
-                    if frequency == "daily":
-                        self.schedule(task, time + 24 * 60 * 60, "daily")
+                    if frequency_to_repeat == "daily":
+                        self.__schedule_daily(task_to_run, time_to_run)
 
-                    elif frequency == "weekly":
-                        self.schedule(task, time + 7 * 24 * 60 * 60, "weekly")
+                    elif frequency_to_repeat == "weekly":
+                        self.__schedule_weekly(task_to_run, time_to_run)
 
-                    elif frequency == "monthly":
-                        data = unix_time_to_string(time)
-                        month = date_string_to_datetime(data).month
-
-                        if month == 4 or month == 6 or month == 9 or month == 11:
-                            month_days = 30
-                        elif month == 2:
-                            month_days = 28
-                        else:
-                            month_days = 31
-
-                        self.schedule(task, time + month_days * 24 * 60 * 60, "monthly")
+                    elif frequency_to_repeat == "monthly":
+                        self.__schedule_monthly(task_to_run, time_to_run)
 
                 self._clock_tick += 1
 
             try:
-                task()
+                task_to_run()
             except Exception as ex:
-                name = task.__name__
+                name = task_to_run.__name__
                 msg = f"error running task {name}:\n"
                 msg += f"   {type(ex)}: {ex}"
                 log.error(msg)
 
-    def schedule(self, task, time, frequency=None):
+    def schedule(self, task_to_run, time_to_start, frequency_to_repeat=None):
         """
         Schedule task to run at some precise time.
         """
 
         # TODO: function should accept dates and datetimes
-        if isinstance(time, datetime.datetime):
-            time = datetime_to_time(time)
+        if isinstance(time_to_start, datetime.datetime):
+            time_to_start = datetime_to_time(time_to_start)
 
-        # with self._lock:
         self._id += 1
-        self.tasks.append((time, self._id, task, frequency))
+        self.tasks.append((time_to_start, self._id, task_to_run, frequency_to_repeat))
         self.tasks = deque(sorted(self.tasks))
 
-    def schedule_now(self, task):
-        return self.schedule_after(task, 0.0)
+    def schedule_now(self, task_to_schedule):
+        return self.schedule_after(task_to_schedule, 0.0)
 
-    def schedule_after(self, task, duration):
+    def schedule_after(self, task_to_schedule, duration):
         """
         Schedule task to run after the given duration.
         """
-        return self.schedule(task, _time() + duration)
+        return self.schedule(task_to_schedule, _time() + duration)
 
-    def schedule_daily(self, task, time):
+    def schedule_daily(self, task_to_schedule, time_to_start):
 
-        self.schedule(task, time, "daily")
+        self.schedule(task_to_schedule, time_to_start, "daily")
 
-    def schedule_weekly(self, task, time):
+    def __schedule_daily(self, task_to_schedule, time_to_start):
 
-        self.schedule(task, time, "weekly")
+        self.schedule(task_to_schedule, time_to_start + 24 * 60 * 60, "daily")
 
-    def schedule_monthly(self, task, time):
+    def schedule_weekly(self, task_to_schedule, time_to_start):
 
-        self.schedule(task, time, "monthly")
+        self.schedule(task_to_schedule, time_to_start, "weekly")
 
-    def _schedule_at_interval(self, interval, task, time):
+    def __schedule_weekly(self, task_to_schedule, time_to_start):
+
+        self.schedule(task_to_schedule, time_to_start + 7 * 24 * 60 * 60, "weekly")
+
+    def schedule_monthly(self, task_to_schedule, time_to_start):
+
+        self.schedule(task_to_schedule, time_to_start, "monthly")
+
+    def __schedule_monthly(self, task_to_schedule, time_to_start):
+
+        unix_time = unix_time_to_string(time_to_start)
+        month = date_string_to_datetime(unix_time).month
+
+        if month == 4 or month == 6 or month == 9 or month == 11:
+            month_days = 30
+        elif month == 2:
+            month_days = 28
+        else:
+            month_days = 31
+
+        self.schedule(task_to_schedule, time_to_start + month_days * 24 * 60 * 60, "monthly")
+
+    def _schedule_at_interval(self, interval, task_to_schedule, time_to_start):
         ...
 
 
